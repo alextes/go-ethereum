@@ -976,6 +976,10 @@ var (
 		Value:    metrics.DefaultConfig.InfluxDBOrganization,
 		Category: flags.MetricsCategory,
 	}
+	IssuanceFlag = &cli.BoolFlag{
+		Name:  "issuance",
+		Usage: "Track Ether issuance (don't use in production)",
+	}
 )
 
 var (
@@ -1858,6 +1862,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		} else {
 			cfg.EthDiscoveryURLs = SplitAndTrim(urls)
 		}
+	}
+	if ctx.IsSet(IssuanceFlag.Name) {
+		cfg.EnableIssuanceRecording = ctx.Bool(IssuanceFlag.Name)
 	}
 	// Override any default configs for hard coded networks.
 	switch {
