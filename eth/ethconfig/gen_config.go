@@ -61,6 +61,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		Checkpoint              *params.TrustedCheckpoint      `toml:",omitempty"`
 		CheckpointOracle        *params.CheckpointOracleConfig `toml:",omitempty"`
 		OverrideShanghai        *uint64                        `toml:",omitempty"`
+		EnableIssuanceRecording bool
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
@@ -100,6 +101,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.GPO = c.GPO
 	enc.EnablePreimageRecording = c.EnablePreimageRecording
 	enc.DocRoot = c.DocRoot
+	enc.EnableIssuanceRecording = c.EnableIssuanceRecording
 	enc.RPCGasCap = c.RPCGasCap
 	enc.RPCEVMTimeout = c.RPCEVMTimeout
 	enc.RPCTxFeeCap = c.RPCTxFeeCap
@@ -155,6 +157,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		Checkpoint              *params.TrustedCheckpoint      `toml:",omitempty"`
 		CheckpointOracle        *params.CheckpointOracleConfig `toml:",omitempty"`
 		OverrideShanghai        *uint64                        `toml:",omitempty"`
+		EnableIssuanceRecording *bool
 	}
 	var dec Config
 	if err := unmarshal(&dec); err != nil {
@@ -270,6 +273,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.DocRoot != nil {
 		c.DocRoot = *dec.DocRoot
+	}
+	if dec.EnableIssuanceRecording != nil {
+		c.EnableIssuanceRecording = *dec.EnableIssuanceRecording
 	}
 	if dec.RPCGasCap != nil {
 		c.RPCGasCap = *dec.RPCGasCap
