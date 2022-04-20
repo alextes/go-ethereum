@@ -33,10 +33,12 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/internal/flags"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	cli "github.com/urfave/cli/v2"
+	"math/big"
 )
 
 var (
@@ -687,5 +689,57 @@ func checkAccount(ctx *cli.Context) error {
 		return err
 	}
 	log.Info("Checked the snapshot journalled storage", "time", common.PrettyDuration(time.Since(start)))
+	return nil
+}
+
+func snapshotCountBalances(ctx *cli.Context) error {
+	stack, _ := makeConfigNode(ctx)
+	defer stack.Close()
+
+	db := utils.MakeChainDatabase(ctx, stack, true)
+	defer db.Close()
+
+	// Use latest
+	header := rawdb.ReadHeadHeader(db)
+	if header == nil {
+		return errors.New("no head block found")
+	}
+	return countBalances(db, header)
+}
+
+func countBalances(db ethdb.Database, h *types.Header) error {
+	snaptree, err := snapshot.New(db, trie.NewDatabase(db), 256, h.Root, false, false, false)
+	if err != nil {
+		return err
+	}
+	accIt, err := snaptree.AccountIterator(h.Root, common.Hash{})
+	if err != nil {
+		return err
+	}
+	defer accIt.Release()
+	log.Info("Snapshot balance counting started", "header", h.Number, "root", h.Root)
+	var (
+		start    = time.Now()
+		logged   = time.Now()
+		accounts uint64
+	)
+	total := big.NewInt(0)
+	for accIt.Next() {
+		account, err := snapshot.FullAccount(accIt.Account())
+		if err != nil {
+			return err
+		}
+		total.Add(total, account.Balance)
+		accounts++
+		if time.Since(logged) > 8*time.Second {
+			log.Info("Snapshot balance counting in progress", "at", accIt.Hash(),
+				"accounts", accounts, "total", total,
+				"elapsed", common.PrettyDuration(time.Since(start)))
+			logged = time.Now()
+		}
+	}
+	log.Info("Balance counting complete", "header", h.Number, "root", h.Root,
+		"accounts", accounts, "total", total,
+		"elapsed", common.PrettyDuration(time.Since(start)))
 	return nil
 }
