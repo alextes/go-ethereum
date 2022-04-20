@@ -54,6 +54,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		TxPool                                core.TxPoolConfig
 		GPO                                   gasprice.Config
 		EnablePreimageRecording               bool
+		EnableIssuanceRecording               bool
 		DocRoot                               string `toml:"-"`
 		RPCGasCap                             uint64
 		RPCEVMTimeout                         time.Duration
@@ -100,7 +101,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.TxPool = c.TxPool
 	enc.GPO = c.GPO
 	enc.EnablePreimageRecording = c.EnablePreimageRecording
-	enc.DocRoot = c.DocRoot
+	enc.EnableIssuanceRecording = c.EnableIssuanceRecording
 	enc.RPCGasCap = c.RPCGasCap
 	enc.RPCEVMTimeout = c.RPCEVMTimeout
 	enc.RPCTxFeeCap = c.RPCTxFeeCap
@@ -150,6 +151,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		TxPool                                *core.TxPoolConfig
 		GPO                                   *gasprice.Config
 		EnablePreimageRecording               *bool
+		EnableIssuanceRecording               *bool
 		DocRoot                               *string `toml:"-"`
 		RPCGasCap                             *uint64
 		RPCEVMTimeout                         *time.Duration
@@ -158,6 +160,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		CheckpointOracle                      *params.CheckpointOracleConfig `toml:",omitempty"`
 		OverrideTerminalTotalDifficulty       *big.Int                       `toml:",omitempty"`
 		OverrideTerminalTotalDifficultyPassed *bool                          `toml:",omitempty"`
+
 	}
 	var dec Config
 	if err := unmarshal(&dec); err != nil {
@@ -271,8 +274,8 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.EnablePreimageRecording != nil {
 		c.EnablePreimageRecording = *dec.EnablePreimageRecording
 	}
-	if dec.DocRoot != nil {
-		c.DocRoot = *dec.DocRoot
+	if dec.EnableIssuanceRecording != nil {
+		c.EnableIssuanceRecording = *dec.EnableIssuanceRecording
 	}
 	if dec.RPCGasCap != nil {
 		c.RPCGasCap = *dec.RPCGasCap
