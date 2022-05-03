@@ -479,6 +479,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		bloomBits       stat
 		beaconHeaders   stat
 		cliqueSnaps     stat
+		issuanceDiffs   stat
 
 		// Les statistic
 		chtTrieNodes   stat
@@ -540,6 +541,8 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		case bytes.HasPrefix(key, skeletonHeaderPrefix) && len(key) == (len(skeletonHeaderPrefix)+8):
 			beaconHeaders.Add(size)
 		case bytes.HasPrefix(key, CliqueSnapshotPrefix) && len(key) == 7+common.HashLength:
+		case bytes.HasPrefix(key, issuancePrefix) && len(key) == (len(issuancePrefix)+8+common.HashLength):
+			issuanceDiffs.Add(size)
 			cliqueSnaps.Add(size)
 		case bytes.HasPrefix(key, ChtTablePrefix) ||
 			bytes.HasPrefix(key, ChtIndexTablePrefix) ||
@@ -594,6 +597,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		{"Key-Value store", "Storage snapshot", storageSnaps.Size(), storageSnaps.Count()},
 		{"Key-Value store", "Beacon sync headers", beaconHeaders.Size(), beaconHeaders.Count()},
 		{"Key-Value store", "Clique snapshots", cliqueSnaps.Size(), cliqueSnaps.Count()},
+		{"Key-Value store", "Issuance counters", issuanceDiffs.Size(), issuanceDiffs.Count()},
 		{"Key-Value store", "Singleton metadata", metadata.Size(), metadata.Count()},
 		{"Light client", "CHT trie nodes", chtTrieNodes.Size(), chtTrieNodes.Count()},
 		{"Light client", "Bloom trie nodes", bloomTrieNodes.Size(), bloomTrieNodes.Count()},
