@@ -104,6 +104,8 @@ var (
 	trieNodeAccountPrefix = []byte("A") // trieNodeAccountPrefix + hexPath -> trie node
 	trieNodeStoragePrefix = []byte("O") // trieNodeStoragePrefix + accountHash + hexPath -> trie node
 
+	issuancePrefix = []byte("e") // issuancePrefix + num (uint64 big endian) + hash -> wei diff
+
 	PreimagePrefix = []byte("secure-key-")       // PreimagePrefix + hash -> preimage
 	configPrefix   = []byte("ethereum-config-")  // config prefix for the db
 	genesisPrefix  = []byte("ethereum-genesis-") // genesis state prefix for the db
@@ -247,4 +249,9 @@ func accountTrieNodeKey(path []byte) []byte {
 // storageTrieNodeKey = trieNodeStoragePrefix + accountHash + nodePath.
 func storageTrieNodeKey(accountHash common.Hash, path []byte) []byte {
 	return append(append(trieNodeStoragePrefix, accountHash.Bytes()...), path...)
+}
+
+// issuanceKey = issuancePrefix + num (uint64 big endian) + hash
+func issuanceKey(number uint64, hash common.Hash) []byte {
+	return append(append(issuancePrefix, encodeBlockNumber(number)...), hash.Bytes()...)
 }
