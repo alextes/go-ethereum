@@ -26,6 +26,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/issuance"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/state/pruner"
@@ -33,12 +34,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/internal/flags"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	cli "github.com/urfave/cli/v2"
-	"math/big"
 )
 
 var (
@@ -161,6 +160,18 @@ block is used.
 				Description: `
 The export-preimages command exports hash preimages to a flat file, in exactly
 the expected order for the overlay tree migration.
+`,
+			},
+			{
+				Name:     "crawl-supply",
+				Usage:    "Calculate the Ether supply at a specific block",
+				Action:   crawlSupply,
+				Category: "MISCELLANEOUS COMMANDS",
+				Flags:    flags.Merge(utils.NetworkFlags, utils.DatabaseFlags),
+				Description: `
+geth snapshot crawl-supply
+will traverse the whole state from the given root and accumulate all the Ether
+balances to calculate the total supply.
 `,
 			},
 		},
@@ -692,54 +703,34 @@ func checkAccount(ctx *cli.Context) error {
 	return nil
 }
 
-func snapshotCountBalances(ctx *cli.Context) error {
+func crawlSupply(ctx *cli.Context) error {
 	stack, _ := makeConfigNode(ctx)
 	defer stack.Close()
 
-	db := utils.MakeChainDatabase(ctx, stack, true)
-	defer db.Close()
-
-	// Use latest
-	header := rawdb.ReadHeadHeader(db)
-	if header == nil {
-		return errors.New("no head block found")
+	chaindb := utils.MakeChainDatabase(ctx, stack, true)
+	headBlock := rawdb.ReadHeadBlock(chaindb)
+	if headBlock == nil {
+		log.Error("Failed to load head block")
+		return errors.New("no head block")
 	}
-	return countBalances(db, header)
-}
-
-func countBalances(db ethdb.Database, h *types.Header) error {
-	snaptree, err := snapshot.New(db, trie.NewDatabase(db), 256, h.Root, false, false, false)
+	if ctx.NArg() > 1 {
+		log.Error("Too many arguments given")
+		return errors.New("too many arguments")
+	}
+	snapConfig := snapshot.Config{
+		CacheSize:  256,
+		Recovery:   false,
+		NoBuild:    false,
+		AsyncBuild: false,
+	}
+	snaptree, err := snapshot.New(snapConfig, chaindb, trie.NewDatabase(chaindb), headBlock.Root())
 	if err != nil {
+		log.Error("Failed to open snapshot tree", "err", err)
 		return err
 	}
-	accIt, err := snaptree.AccountIterator(h.Root, common.Hash{})
-	if err != nil {
+	if _, err = issuance.Supply(headBlock.Header(), snaptree); err != nil {
+		log.Error("Failed to calculate current supply", "err", err)
 		return err
 	}
-	defer accIt.Release()
-	log.Info("Snapshot balance counting started", "header", h.Number, "root", h.Root)
-	var (
-		start    = time.Now()
-		logged   = time.Now()
-		accounts uint64
-	)
-	total := big.NewInt(0)
-	for accIt.Next() {
-		account, err := snapshot.FullAccount(accIt.Account())
-		if err != nil {
-			return err
-		}
-		total.Add(total, account.Balance)
-		accounts++
-		if time.Since(logged) > 8*time.Second {
-			log.Info("Snapshot balance counting in progress", "at", accIt.Hash(),
-				"accounts", accounts, "total", total,
-				"elapsed", common.PrettyDuration(time.Since(start)))
-			logged = time.Now()
-		}
-	}
-	log.Info("Balance counting complete", "header", h.Number, "root", h.Root,
-		"accounts", accounts, "total", total,
-		"elapsed", common.PrettyDuration(time.Since(start)))
 	return nil
 }
