@@ -165,7 +165,7 @@ block is used.
 			{
 				Name:     "crawl-supply",
 				Usage:    "Calculate the Ether supply at a specific block",
-				Action:   utils.MigrateFlags(crawlSupply),
+				Action:   crawlSupply,
 				Category: "MISCELLANEOUS COMMANDS",
 				Flags:    utils.GroupFlags(utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
