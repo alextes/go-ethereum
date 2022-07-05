@@ -43,11 +43,11 @@ func Issuance(block *types.Block, parent *types.Header, db *trie.Database, confi
 	if block.ParentHash() != parent.Hash() {
 		return nil, fmt.Errorf("parent hash mismatch: have %s, want %s", block.ParentHash().Hex(), parent.Hash().Hex())
 	}
-	src, err := trie.New(parent.Root, db)
+	src, err := trie.New(common.Hash{}, parent.Root, db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open source trie: %v", err)
 	}
-	dst, err := trie.New(block.Root(), db)
+	dst, err := trie.New(common.Hash{}, block.Root(), db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open destination trie: %v", err)
 	}
