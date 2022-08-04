@@ -167,7 +167,7 @@ block is used.
 				Usage:    "Calculate the Ether supply at a specific block",
 				Action:   crawlSupply,
 				Category: "MISCELLANEOUS COMMANDS",
-				Flags:    utils.GroupFlags(utils.NetworkFlags, utils.DatabasePathFlags),
+				Flags:    flags.Merge(utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
 geth snapshot crawl-supply
 will traverse the whole state from the given root and accumulate all the Ether
