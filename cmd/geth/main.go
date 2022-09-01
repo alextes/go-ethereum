@@ -69,7 +69,7 @@ var (
 		utils.NoUSBFlag,
 		utils.USBFlag,
 		utils.SmartCardDaemonPathFlag,
-		utils.IssuanceFlag,
+		utils.SupplyDeltaFlag,
 		utils.OverrideTerminalTotalDifficulty,
 		utils.OverrideTerminalTotalDifficultyPassed,
 		utils.EthashCacheDirFlag,
