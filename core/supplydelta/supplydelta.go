@@ -72,41 +72,41 @@ func SupplyDelta(block *types.Block, parent *types.Header, db *trie.Database, co
 		}
 		supplyDelta.Sub(supplyDelta, acc.Balance)
 	}
-	// Calculate the block subsidy based on chain rules and progression.
-	subsidy, uncles, burn := Subsidy(block, config)
+	// Calculate the block fixedReward based on chain rules and progression.
+	fixedReward, unclesReward, burn := Subsidy(block, config)
 
 	// Calculate the difference between the "calculated" and "crawled" supply
 	// delta.
 	diff := new(big.Int).Set(supplyDelta)
-	diff.Sub(diff, subsidy)
-	diff.Sub(diff, uncles)
+	diff.Sub(diff, fixedReward)
+	diff.Sub(diff, unclesReward)
 	diff.Add(diff, burn)
 
-	log.Info("Calculated supply delta for block", "number", block.Number(), "hash", block.Hash(), "supplydelta", supplyDelta, "subsidy", subsidy, "uncles", uncles, "burn", burn, "diff", diff, "elapsed", time.Since(start))
+	log.Info("Calculated supply delta for block", "number", block.Number(), "hash", block.Hash(), "supplydelta", supplyDelta, "fixedreward", fixedReward, "unclesreward", unclesReward, "burn", burn, "diff", diff, "elapsed", time.Since(start))
 	return supplyDelta, nil
 }
 
-// Subsidy calculates the block mining and uncle subsidy as well as the 1559 burn
-// solely based on header fields. This method is a very accurate approximation of
-// the true supply delta, but cannot take into account Ether burns via selfdestructs,
-// so it will always be ever so slightly off.
-func Subsidy(block *types.Block, config *params.ChainConfig) (subsidy *big.Int, uncles *big.Int, burn *big.Int) {
-	// Calculate the block subsidy based on chain rules and progression.
-	subsidy = new(big.Int)
-	uncles = new(big.Int)
+// Subsidy calculates the block mining (fixed) and uncle subsidy as well as the
+// 1559 burn solely based on header fields. This method is a very accurate
+// approximation of the true supply delta, but cannot take into account Ether
+// burns via selfdestructs, so it will always be ever so slightly off.
+func Subsidy(block *types.Block, config *params.ChainConfig) (fixedReward *big.Int, unclesReward *big.Int, burn *big.Int) {
+	// Calculate the block rewards based on chain rules and progression.
+	fixedReward = new(big.Int)
+	unclesReward = new(big.Int)
 
 	// Select the correct block reward based on chain progression.
 	if config.Ethash != nil {
 		if block.Difficulty().BitLen() != 0 {
-			subsidy = ethash.FrontierBlockReward
+			fixedReward = ethash.FrontierBlockReward
 			if config.IsByzantium(block.Number()) {
-				subsidy = ethash.ByzantiumBlockReward
+				fixedReward = ethash.ByzantiumBlockReward
 			}
 			if config.IsConstantinople(block.Number()) {
-				subsidy = ethash.ConstantinopleBlockReward
+				fixedReward = ethash.ConstantinopleBlockReward
 			}
 		}
-		// Accumulate the rewards for inclded uncles.
+		// Accumulate the rewards for included uncles.
 		var (
 			big8  = big.NewInt(8)
 			big32 = big.NewInt(32)
@@ -116,13 +116,13 @@ func Subsidy(block *types.Block, config *params.ChainConfig) (subsidy *big.Int, 
 			// Add the reward for the side blocks.
 			r.Add(uncle.Number, big8)
 			r.Sub(r, block.Number())
-			r.Mul(r, subsidy)
+			r.Mul(r, fixedReward)
 			r.Div(r, big8)
-			uncles.Add(uncles, r)
+			unclesReward.Add(unclesReward, r)
 
 			// Add the reward for accumulating the side blocks.
-			r.Div(subsidy, big32)
-			uncles.Add(uncles, r)
+			r.Div(fixedReward, big32)
+			unclesReward.Add(unclesReward, r)
 		}
 	}
 	// Calculate the burn based on chain rules and progression.
@@ -130,7 +130,7 @@ func Subsidy(block *types.Block, config *params.ChainConfig) (subsidy *big.Int, 
 	if block.BaseFee() != nil {
 		burn = new(big.Int).Mul(new(big.Int).SetUint64(block.GasUsed()), block.BaseFee())
 	}
-	return subsidy, uncles, burn
+	return fixedReward, unclesReward, burn
 }
 
 // Supply crawls the state snapshot at a given header and gatheres all the account
