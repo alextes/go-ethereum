@@ -88,13 +88,14 @@ func (api *EthereumAPI) Issuance(ctx context.Context, from uint64) (*rpc.Subscri
 
 	// Define an internal type for issuance notifications
 	type issuanceNotification struct {
-		Number   uint64      `json:"block"`
-		Hash     common.Hash `json:"hash"`
-		Issuance *big.Int    `json:"issuance"`
-		Subsidy  *big.Int    `json:"subsidy"`
-		Uncles   *big.Int    `json:"uncles"`
-		Burn     *big.Int    `json:"burn"`
-		Destruct *big.Int    `json:"destruct"`
+		Number     uint64      `json:"block"`
+		Hash       common.Hash `json:"hash"`
+		ParentHash common.Hash `json:"parentHash"`
+		Issuance   *big.Int    `json:"issuance"`
+		Subsidy    *big.Int    `json:"subsidy"`
+		Uncles     *big.Int    `json:"uncles"`
+		Burn       *big.Int    `json:"burn"`
+		Destruct   *big.Int    `json:"destruct"`
 	}
 	// Define a method to convert a block into an issuance notification
 	service := func(block *types.Block) {
