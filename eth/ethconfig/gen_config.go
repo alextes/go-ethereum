@@ -54,7 +54,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		TxPool                                core.TxPoolConfig
 		GPO                                   gasprice.Config
 		EnablePreimageRecording               bool
-		EnableIssuanceRecording               bool
+		EnableSupplyDeltaRecording            bool
 		DocRoot                               string `toml:"-"`
 		RPCGasCap                             uint64
 		RPCEVMTimeout                         time.Duration
@@ -101,7 +101,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.TxPool = c.TxPool
 	enc.GPO = c.GPO
 	enc.EnablePreimageRecording = c.EnablePreimageRecording
-	enc.EnableIssuanceRecording = c.EnableIssuanceRecording
+	enc.EnableSupplyDeltaRecording = c.EnableSupplyDeltaRecording
 	enc.RPCGasCap = c.RPCGasCap
 	enc.RPCEVMTimeout = c.RPCEVMTimeout
 	enc.RPCTxFeeCap = c.RPCTxFeeCap
@@ -151,7 +151,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		TxPool                                *core.TxPoolConfig
 		GPO                                   *gasprice.Config
 		EnablePreimageRecording               *bool
-		EnableIssuanceRecording               *bool
+		EnableSupplyDeltaRecording            *bool
 		DocRoot                               *string `toml:"-"`
 		RPCGasCap                             *uint64
 		RPCEVMTimeout                         *time.Duration
@@ -273,8 +273,8 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.EnablePreimageRecording != nil {
 		c.EnablePreimageRecording = *dec.EnablePreimageRecording
 	}
-	if dec.EnableIssuanceRecording != nil {
-		c.EnableIssuanceRecording = *dec.EnableIssuanceRecording
+	if dec.EnableSupplyDeltaRecording != nil {
+		c.EnableSupplyDeltaRecording = *dec.EnableSupplyDeltaRecording
 	}
 	if dec.RPCGasCap != nil {
 		c.RPCGasCap = *dec.RPCGasCap

@@ -31,9 +31,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/issuance"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/supplydelta"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/log"
@@ -67,45 +67,45 @@ func (api *EthereumAPI) Hashrate() hexutil.Uint64 {
 	return hexutil.Uint64(api.e.Miner().Hashrate())
 }
 
-// Issuance send a notification each time a new block is appended to the chain
-// with various counters about Ether issuance: the state diff (if available),
-// block and uncle subsidy, 1559 burn.
-func (api *EthereumAPI) Issuance(ctx context.Context, from uint64) (*rpc.Subscription, error) {
-	// If issuance tracking is not explcitly enabled, refuse to service this
+// SupplyDelta send a notification each time a new block is appended to the chain
+// with various counters about Ether supply delta: the state diff (if
+// available), block and uncle subsidy, 1559 burn.
+func (api *EthereumAPI) SupplyDelta(ctx context.Context, from uint64) (*rpc.Subscription, error) {
+	// If supply delta tracking is not explcitly enabled, refuse to service this
 	// endpoint. Although we could enable the simple calculations, it might
 	// end up as an unexpected load on RPC providers, so let's not surprise.
-	if !api.e.config.EnableIssuanceRecording {
-		return nil, errors.New("issuance recording not enabled")
+	if !api.e.config.EnableSupplyDeltaRecording {
+		return nil, errors.New("supply delta recording not enabled")
 	}
 	config := api.e.blockchain.Config()
 
-	// Issuance recording enabled, create a subscription to stream through
+	// Supply delta recording enabled, create a subscription to stream through
 	notifier, supported := rpc.NotifierFromContext(ctx)
 	if !supported {
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 	rpcSub := notifier.CreateSubscription()
 
-	// Define an internal type for issuance notifications
-	type issuanceNotification struct {
-		Number     uint64      `json:"block"`
-		Hash       common.Hash `json:"hash"`
-		ParentHash common.Hash `json:"parentHash"`
-		Issuance   *big.Int    `json:"issuance"`
-		Subsidy    *big.Int    `json:"subsidy"`
-		Uncles     *big.Int    `json:"uncles"`
-		Burn       *big.Int    `json:"burn"`
-		Destruct   *big.Int    `json:"destruct"`
+	// Define an internal type for supply delta notifications
+	type supplyDeltaNotification struct {
+		Number      uint64      `json:"block"`
+		Hash        common.Hash `json:"hash"`
+		ParentHash  common.Hash `json:"parentHash"`
+		SupplyDelta *big.Int    `json:"supplyDelta"`
+		Subsidy     *big.Int    `json:"subsidy"`
+		Uncles      *big.Int    `json:"uncles"`
+		Burn        *big.Int    `json:"burn"`
+		Destruct    *big.Int    `json:"destruct"`
 	}
-	// Define a method to convert a block into an issuance notification
+	// Define a method to convert a block into an supply delta notification
 	service := func(block *types.Block) {
-		// Retrieve the state-crawled issuance - if available
-		crawled := rawdb.ReadIssuance(api.e.chainDb, block.NumberU64(), block.Hash())
+		// Retrieve the state-crawled supply delta - if available
+		crawled := rawdb.ReadSupplyDelta(api.e.chainDb, block.NumberU64(), block.Hash())
 
 		// Calculate the subsidy from the block's contents
-		subsidy, uncles, burn := issuance.Subsidy(block, config)
+		subsidy, uncles, burn := supplydelta.Subsidy(block, config)
 
-		// Calculate the difference between the "calculated" and "crawled" issuance
+		// Calculate the difference between the "calculated" and "crawled" supply delta
 		var diff *big.Int
 		if crawled != nil {
 			diff = new(big.Int).Set(crawled)
@@ -113,33 +113,34 @@ func (api *EthereumAPI) Issuance(ctx context.Context, from uint64) (*rpc.Subscri
 			diff.Sub(diff, uncles)
 			diff.Add(diff, burn)
 		}
-		// Push the issuance to the user
-		notifier.Notify(rpcSub.ID, &issuanceNotification{
-			Number:     block.NumberU64(),
-			Hash:       block.Hash(),
-			ParentHash: block.ParentHash(),
-			Issuance:   crawled,
-			Subsidy:    subsidy,
-			Uncles:     uncles,
-			Burn:       burn,
-			Destruct:   diff,
+		// Push the supply delta to the user
+		notifier.Notify(rpcSub.ID, &supplyDeltaNotification{
+			Number:      block.NumberU64(),
+			Hash:        block.Hash(),
+			ParentHash:  block.ParentHash(),
+			SupplyDelta: crawled,
+			Subsidy:     subsidy,
+			Uncles:      uncles,
+			Burn:        burn,
+			Destruct:    diff,
 		})
 	}
 	go func() {
 		// Iterate over all blocks from the requested source up to head and push
-		// out historical issuance values to the user. Checking the head after
+		// out historical supply delta values to the user. Checking the head after
 		// each iteration is a bit heavy, but it's not really relevant compared
 		// to pulling blocks from disk, so this keeps thing simpler to switch
-		// from historicla blocks to live blocks.
+		// from historical blocks to live blocks.
 		for number := from; number <= api.e.blockchain.CurrentBlock().NumberU64(); number++ {
 			block := rawdb.ReadBlock(api.e.chainDb, rawdb.ReadCanonicalHash(api.e.chainDb, number), number)
 			if block == nil {
-				log.Error("Missing block for issuane reporting", "number", number)
+				log.Error("Missing block for supply delta reporting", "number", number)
 				return
 			}
 			service(block)
 		}
-		// Subscribe to chain events and keep emitting issuances on all branches
+		// Subscribe to chain events and keep emitting supply deltas on all
+		// branches
 		canonBlocks := make(chan core.ChainEvent)
 		canonBlocksSub := api.e.blockchain.SubscribeChainEvent(canonBlocks)
 		defer canonBlocksSub.Unsubscribe()
