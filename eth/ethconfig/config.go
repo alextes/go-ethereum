@@ -141,6 +141,9 @@ type Config struct {
 	// Enables tracking of SHA3 preimages in the VM
 	EnablePreimageRecording bool
 
+	// Miscellaneous options
+	DocRoot string `toml:"-"`
+
 	// Enables tracking Ether issuance during block processing
 	EnableIssuanceRecording bool
 
