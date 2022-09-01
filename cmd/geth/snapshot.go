@@ -25,11 +25,11 @@ import (
 
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/issuance"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/state/pruner"
 	"github.com/ethereum/go-ethereum/core/state/snapshot"
+	"github.com/ethereum/go-ethereum/core/supplydelta"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/internal/flags"
@@ -622,7 +622,7 @@ func crawlSupply(ctx *cli.Context) error {
 		log.Error("Failed to open snapshot tree", "err", err)
 		return err
 	}
-	if _, err = issuance.Supply(headBlock.Header(), snaptree); err != nil {
+	if _, err = supplydelta.Supply(headBlock.Header(), snaptree); err != nil {
 		log.Error("Failed to calculate current supply", "err", err)
 		return err
 	}
