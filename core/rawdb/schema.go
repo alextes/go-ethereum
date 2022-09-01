@@ -100,7 +100,7 @@ var (
 	CodePrefix            = []byte("c") // CodePrefix + code hash -> account code
 	skeletonHeaderPrefix  = []byte("S") // skeletonHeaderPrefix + num (uint64 big endian) -> header
 
-	issuancePrefix = []byte("e") // issuancePrefix + num (uint64 big endian) + hash -> wei diff
+	supplyDeltaPrefix = []byte("e") // supplyDeltaPrefix + num (uint64 big endian) + hash -> wei diff
 
 	PreimagePrefix = []byte("secure-key-")       // PreimagePrefix + hash -> preimage
 	configPrefix   = []byte("ethereum-config-")  // config prefix for the db
@@ -227,7 +227,7 @@ func genesisStateSpecKey(hash common.Hash) []byte {
 	return append(genesisPrefix, hash.Bytes()...)
 }
 
-// issuanceKey = issuancePrefix + num (uint64 big endian) + hash
-func issuanceKey(number uint64, hash common.Hash) []byte {
-	return append(append(issuancePrefix, encodeBlockNumber(number)...), hash.Bytes()...)
+// supplyDeltaKey = supplyDeltaPrefix + num (uint64 big endian) + hash
+func supplyDeltaKey(number uint64, hash common.Hash) []byte {
+	return append(append(supplyDeltaPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
 }
