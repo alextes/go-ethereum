@@ -1328,7 +1328,8 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		}
 	}
 	// If Ether issuance tracking is enabled, do it before emitting events
-	if bc.vmConfig.EnableIssuanceRecording {
+	// HACK: setting the flag stopped working. Always record issuance on this fork.
+	if true || bc.vmConfig.EnableIssuanceRecording {
 		// Note, this code path is opt-in for data analysis nodes, so speed
 		// is not really relevant, simplicity and containment much more so.
 		parent := rawdb.ReadHeader(bc.db, block.ParentHash(), block.NumberU64()-1)

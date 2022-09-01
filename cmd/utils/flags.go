@@ -1861,7 +1861,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 			cfg.EthDiscoveryURLs = SplitAndTrim(urls)
 		}
 	}
-	if ctx.IsSet(IssuanceFlag.Name) {
+	// HACK: setting the flag stopped working. Always record issuance on this fork.
+	if true || ctx.IsSet(IssuanceFlag.Name) {
 		cfg.EnableIssuanceRecording = ctx.Bool(IssuanceFlag.Name)
 	}
 	// Override any default configs for hard coded networks.
