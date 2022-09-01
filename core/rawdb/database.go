@@ -461,25 +461,25 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		logged = time.Now()
 
 		// Key-value store statistics
-		headers         stat
-		bodies          stat
-		receipts        stat
-		tds             stat
-		numHashPairings stat
-		hashNumPairings stat
-		legacyTries     stat
-		stateLookups    stat
-		accountTries    stat
-		storageTries    stat
-		codes           stat
-		txLookups       stat
-		accountSnaps    stat
-		storageSnaps    stat
-		preimages       stat
-		bloomBits       stat
-		beaconHeaders   stat
-		cliqueSnaps     stat
-		issuanceDiffs   stat
+		headers          stat
+		bodies           stat
+		receipts         stat
+		tds              stat
+		numHashPairings  stat
+		hashNumPairings  stat
+		legacyTries      stat
+		stateLookups     stat
+		accountTries     stat
+		storageTries     stat
+		codes            stat
+		txLookups        stat
+		accountSnaps     stat
+		storageSnaps     stat
+		preimages        stat
+		bloomBits        stat
+		beaconHeaders    stat
+		cliqueSnaps      stat
+		supplyDeltaDiffs stat
 
 		// Les statistic
 		chtTrieNodes   stat
@@ -541,8 +541,8 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		case bytes.HasPrefix(key, skeletonHeaderPrefix) && len(key) == (len(skeletonHeaderPrefix)+8):
 			beaconHeaders.Add(size)
 		case bytes.HasPrefix(key, CliqueSnapshotPrefix) && len(key) == 7+common.HashLength:
-		case bytes.HasPrefix(key, issuancePrefix) && len(key) == (len(issuancePrefix)+8+common.HashLength):
-			issuanceDiffs.Add(size)
+		case bytes.HasPrefix(key, supplyDeltaPrefix) && len(key) == (len(supplyDeltaPrefix)+8+common.HashLength):
+			supplyDeltaDiffs.Add(size)
 			cliqueSnaps.Add(size)
 		case bytes.HasPrefix(key, ChtTablePrefix) ||
 			bytes.HasPrefix(key, ChtIndexTablePrefix) ||
@@ -597,7 +597,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		{"Key-Value store", "Storage snapshot", storageSnaps.Size(), storageSnaps.Count()},
 		{"Key-Value store", "Beacon sync headers", beaconHeaders.Size(), beaconHeaders.Count()},
 		{"Key-Value store", "Clique snapshots", cliqueSnaps.Size(), cliqueSnaps.Count()},
-		{"Key-Value store", "Issuance counters", issuanceDiffs.Size(), issuanceDiffs.Count()},
+		{"Key-Value store", "Supply delta counters", supplyDeltaDiffs.Size(), supplyDeltaDiffs.Count()},
 		{"Key-Value store", "Singleton metadata", metadata.Size(), metadata.Count()},
 		{"Light client", "CHT trie nodes", chtTrieNodes.Size(), chtTrieNodes.Count()},
 		{"Light client", "Bloom trie nodes", bloomTrieNodes.Size(), bloomTrieNodes.Count()},

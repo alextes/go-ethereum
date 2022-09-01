@@ -189,37 +189,37 @@ func WriteTransitionStatus(db ethdb.KeyValueWriter, data []byte) {
 	}
 }
 
-// ReadIssuance retrieves the amount of Ether (in Wei) issued (or burnt) in a
+// ReadSupplyDelta retrieves the amount of Ether (in Wei) issued (or burnt) in a
 // specific block. If unavailable for the specific block (non full synced node),
 // nil will be returned.
-func ReadIssuance(db ethdb.KeyValueReader, number uint64, hash common.Hash) *big.Int {
-	blob, _ := db.Get(issuanceKey(number, hash))
+func ReadSupplyDelta(db ethdb.KeyValueReader, number uint64, hash common.Hash) *big.Int {
+	blob, _ := db.Get(supplyDeltaKey(number, hash))
 	if len(blob) < 2 {
 		return nil
 	}
 	// Since negative big ints can't be encoded to bytes directly, use a dirty
 	// hack to store the negativift flag in the first byte (0 == positive,
 	// 1 == negative)
-	issuance := new(big.Int).SetBytes(blob[1:])
+	supplyDelta := new(big.Int).SetBytes(blob[1:])
 	if blob[0] == 1 {
-		issuance.Neg(issuance)
+		supplyDelta.Neg(supplyDelta)
 	}
-	return issuance
+	return supplyDelta
 }
 
-// WriteIssuance stores the amount of Ether (in wei) issued (or burnt) in a
+// WriteSupplyDelta stores the amount of Ether (in wei) issued (or burnt) in a
 // specific block.
-func WriteIssuance(db ethdb.KeyValueWriter, number uint64, hash common.Hash, issuance *big.Int) {
+func WriteSupplyDelta(db ethdb.KeyValueWriter, number uint64, hash common.Hash, supplyDelta *big.Int) {
 	// Since negative big ints can't be encoded to bytes directly, use a dirty
 	// hack to store the negativift flag in the first byte (0 == positive,
 	// 1 == negative)
 	blob := []byte{0}
-	if issuance.Sign() < 0 {
+	if supplyDelta.Sign() < 0 {
 		blob[0] = 1
 	}
-	blob = append(blob, issuance.Bytes()...)
+	blob = append(blob, supplyDelta.Bytes()...)
 
-	if err := db.Put(issuanceKey(number, hash), blob); err != nil {
-		log.Crit("Failed to store block issuance", "err", err)
+	if err := db.Put(supplyDeltaKey(number, hash), blob); err != nil {
+		log.Crit("Failed to store block supply delta", "err", err)
 	}
 }
