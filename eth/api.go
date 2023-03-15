@@ -131,7 +131,7 @@ func (api *EthereumAPI) SupplyDelta(ctx context.Context, from uint64) (*rpc.Subs
 		// each iteration is a bit heavy, but it's not really relevant compared
 		// to pulling blocks from disk, so this keeps thing simpler to switch
 		// from historical blocks to live blocks.
-		for number := from; number <= api.e.blockchain.CurrentBlock().NumberU64(); number++ {
+		for number := from; number <= api.e.blockchain.CurrentBlock().Number.Uint64(); number++ {
 			block := rawdb.ReadBlock(api.e.chainDb, rawdb.ReadCanonicalHash(api.e.chainDb, number), number)
 			if block == nil {
 				log.Error("Missing block for supply delta reporting", "number", number)
