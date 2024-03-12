@@ -29,11 +29,12 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
 )
 
 // SupplyDelta calculates the Ether delta across two state tries. That is, the
 // issuance minus the ETH destroyed.
-func SupplyDelta(block *types.Block, parent *types.Header, db *trie.Database, config *params.ChainConfig) (*big.Int, error) {
+func SupplyDelta(block *types.Block, parent *types.Header, db *triedb.Database, config *params.ChainConfig) (*big.Int, error) {
 	var (
 		supplyDelta = new(big.Int)
 		start       = time.Now()
@@ -51,7 +52,16 @@ func SupplyDelta(block *types.Block, parent *types.Header, db *trie.Database, co
 		return nil, fmt.Errorf("failed to open destination trie: %v", err)
 	}
 	// Gather all the changes across from source to destination.
-	fwdDiffIt, _ := trie.NewDifferenceIterator(src.NodeIterator(nil), dst.NodeIterator(nil))
+	srcIt, err := src.NodeIterator(nil)
+	if err != nil {
+		return nil, fmt.Errorf("error obtaining src iterator: %v", err)
+	}
+
+	dstIt, err := dst.NodeIterator(nil)
+	if err != nil {
+		return nil, fmt.Errorf("error obtaining dst iterator: %v", err)
+	}
+	fwdDiffIt, _ := trie.NewDifferenceIterator(srcIt, dstIt)
 	fwdIt := trie.NewIterator(fwdDiffIt)
 
 	for fwdIt.Next() {
@@ -59,10 +69,19 @@ func SupplyDelta(block *types.Block, parent *types.Header, db *trie.Database, co
 		if err := rlp.DecodeBytes(fwdIt.Value, acc); err != nil {
 			panic(err)
 		}
-		supplyDelta.Add(supplyDelta, acc.Balance)
+		supplyDelta.Add(supplyDelta, acc.Balance.ToBig())
 	}
 	// Gather all the changes across from destination to source.
-	rewDiffIt, _ := trie.NewDifferenceIterator(dst.NodeIterator(nil), src.NodeIterator(nil))
+	srcIt, err = src.NodeIterator(nil)
+	if err != nil {
+		return nil, fmt.Errorf("error obtaining src iterator: %v", err)
+	}
+
+	dstIt, err = dst.NodeIterator(nil)
+	if err != nil {
+		return nil, fmt.Errorf("error obtaining dst iterator: %v", err)
+	}
+	rewDiffIt, _ := trie.NewDifferenceIterator(dstIt, srcIt)
 	rewIt := trie.NewIterator(rewDiffIt)
 
 	for rewIt.Next() {
@@ -70,7 +89,7 @@ func SupplyDelta(block *types.Block, parent *types.Header, db *trie.Database, co
 		if err := rlp.DecodeBytes(rewIt.Value, acc); err != nil {
 			panic(err)
 		}
-		supplyDelta.Sub(supplyDelta, acc.Balance)
+		supplyDelta.Sub(supplyDelta, acc.Balance.ToBig())
 	}
 	// Calculate the block fixedReward based on chain rules and progression.
 	fixedReward, unclesReward, burn := Subsidy(block, config)
@@ -98,12 +117,12 @@ func Subsidy(block *types.Block, config *params.ChainConfig) (fixedReward *big.I
 	// Select the correct block reward based on chain progression.
 	if config.Ethash != nil {
 		if block.Difficulty().BitLen() != 0 {
-			fixedReward = ethash.FrontierBlockReward
+			fixedReward = ethash.FrontierBlockReward.ToBig()
 			if config.IsByzantium(block.Number()) {
-				fixedReward = ethash.ByzantiumBlockReward
+				fixedReward = ethash.ByzantiumBlockReward.ToBig()
 			}
 			if config.IsConstantinople(block.Number()) {
-				fixedReward = ethash.ConstantinopleBlockReward
+				fixedReward = ethash.ConstantinopleBlockReward.ToBig()
 			}
 		}
 		// Accumulate the rewards for included uncles.
@@ -150,11 +169,11 @@ func Supply(header *types.Header, snaptree *snapshot.Tree) (*big.Int, error) {
 	)
 	supply := big.NewInt(0)
 	for accIt.Next() {
-		account, err := snapshot.FullAccount(accIt.Account())
+		account, err := types.FullAccount(accIt.Account())
 		if err != nil {
 			return nil, err
 		}
-		supply.Add(supply, account.Balance)
+		supply.Add(supply, account.Balance.ToBig())
 		accounts++
 		if time.Since(logged) > 8*time.Second {
 			log.Info("Ether supply counting in progress", "at", accIt.Hash(),
