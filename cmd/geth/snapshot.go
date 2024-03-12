@@ -37,6 +37,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
 	cli "github.com/urfave/cli/v2"
 )
 
@@ -723,7 +724,7 @@ func crawlSupply(ctx *cli.Context) error {
 		NoBuild:    false,
 		AsyncBuild: false,
 	}
-	snaptree, err := snapshot.New(snapConfig, chaindb, trie.NewDatabase(chaindb), headBlock.Root())
+	snaptree, err := snapshot.New(snapConfig, chaindb, triedb.NewDatabase(chaindb, nil), headBlock.Root())
 	if err != nil {
 		log.Error("Failed to open snapshot tree", "err", err)
 		return err
